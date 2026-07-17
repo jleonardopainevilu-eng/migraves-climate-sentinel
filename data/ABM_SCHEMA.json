@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://migraves.example/schemas/abm-1.0.json",
+  "title": "MigrAves Area Bioclimática Migratoria",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "area_id", "name", "ecosystem_type", "region", "geometry", "priority_species_or_groups", "historical_baseline", "governance"],
+  "properties": {
+    "schema": { "const": "MigrAves-ABM" },
+    "schema_version": { "const": "1.0" },
+    "area_id": { "type": "string", "pattern": "^ABM-[A-Z0-9-]+$" },
+    "name": { "type": "string", "minLength": 2 },
+    "ecosystem_type": { "type": "string", "enum": ["coastal_wetland", "estuary", "forest", "river", "coast", "other"] },
+    "region": { "type": "string" },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates", "monitored_radius_km"],
+      "properties": {
+        "type": { "const": "Point" },
+        "coordinates": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number", "minimum": -180, "maximum": 180 },
+            { "type": "number", "minimum": -90, "maximum": 90 }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "monitored_radius_km": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "priority_species_or_groups": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "historical_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["period", "description"],
+      "properties": {
+        "period": { "type": "string" },
+        "description": { "type": "string", "minLength": 10 }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_role", "data_access"],
+      "properties": {
+        "primary_role": { "type": "string" },
+        "data_access": { "type": "string", "enum": ["open", "restricted", "sensitive"] }
+      }
+    },
+    "created_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://migraves.example/schemas/rbm-1.0.json",
+  "title": "MigrAves Registro Bioclimático Migratorio",
+  "type": "object",
+  "required": ["schema", "schema_version", "record_id", "generated_at", "area", "observation", "environment", "historical_comparison", "climate_response_index", "interpretation", "provenance", "validation"],
+  "properties": {
+    "schema": { "const": "MigrAves-RBM" },
+    "schema_version": { "const": "1.0" },
+    "record_id": { "type": "string", "pattern": "^RBM-[A-Z0-9-]+$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "area": { "$ref": "ABM_SCHEMA.json" },
+    "observation": {
+      "type": "object",
+      "required": ["observed_at", "evidence", "estimated_total_birds", "primary_taxon", "detections"],
+      "properties": {
+        "observed_at": { "type": "string" },
+        "field_note": { "type": "string" },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "image_filename": { "type": ["string", "null"] },
+            "image_stored_in_export": { "type": "boolean" }
+          }
+        },
+        "estimated_total_birds": { "type": "integer", "minimum": 0 },
+        "visible_groups": { "type": "integer", "minimum": 0 },
+        "primary_taxon": { "type": "string" },
+        "species_or_groups": { "type": "integer", "minimum": 0 },
+        "observed_behaviors": { "type": "array", "items": { "type": "string" } },
+        "detections": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "environment": { "type": "object" },
+    "historical_comparison": { "type": "object" },
+    "climate_response_index": {
+      "type": "object",
+      "required": ["score", "level", "confidence", "components", "interpretation"],
+      "properties": {
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "level": { "type": "string", "enum": ["low", "moderate", "high", "insufficient_data"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "components": {
+          "type": "object",
+          "required": ["phenology", "abundance", "habitat", "weather"],
+          "properties": {
+            "phenology": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "abundance": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "habitat": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "weather": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "interpretation": { "type": ["string", "object"] }
+      }
+    },
+    "interpretation": { "type": "object" },
+    "provenance": { "type": "object" },
+    "validation": {
+      "type": "object",
+      "required": ["status", "data_quality_level"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pending", "confirmed", "corrected", "scientific_validated", "discarded"] },
+        "reviewer_name": { "type": "string" },
+        "reviewer_role": { "type": "string" },
+        "corrected_taxon": { "type": "string" },
+        "note": { "type": "string" },
+        "reviewed_at": { "type": ["string", "null"] },
+        "data_quality_level": { "type": "string", "enum": ["N0", "N1", "N2", "N3", "N4"] },
+        "data_quality_label": { "type": "string" }
+      }
+    }
+  }
+}
