@@ -12,6 +12,10 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <div class="demo-banner" role="status" aria-label="Demostración con datos simulados">
+    <strong data-es="DEMOSTRACIÓN — DATOS SIMULADOS" data-en="DEMONSTRATION — SIMULATED DATA">DEMOSTRACIÓN — DATOS SIMULADOS</strong>
+    <span data-es="No corresponde a una observación científica real." data-en="This is not a real scientific observation.">No corresponde a una observación científica real.</span>
+  </div>
   <header class="topbar">
     <a class="brand" href="#top" aria-label="MigrAves Climate Sentinel">
       <span class="brand-mark" aria-hidden="true">
@@ -169,7 +173,7 @@
             <label class="wide"><span data-es="Grupo acústico dominante" data-en="Dominant acoustic group">Grupo acústico dominante</span><input id="acousticGroup" placeholder="Aves playeras / shorebirds" /></label>
             <label class="wide"><span data-es="Nota de campo" data-en="Field note">Nota de campo</span><textarea id="fieldNote" rows="2" placeholder="Marea, perturbación humana, visibilidad u otra condición relevante."></textarea></label>
           </div>
-          <div class="provenance-key"><span><i class="dot real"></i><b data-es="Medido" data-en="Measured">Medido</b></span><span><i class="dot simulated"></i><b data-es="Simulado" data-en="Simulated">Simulado</b></span><span><i class="dot estimated"></i><b data-es="Estimado por IA" data-en="AI estimated">Estimado por IA</b></span></div>
+          <div class="provenance-key" aria-label="Tipos de procedencia"><span><i class="dot real"></i><b data-es="Medido" data-en="Measured">Medido</b></span><span><i class="dot imported"></i><b data-es="Importado" data-en="Imported">Importado</b></span><span><i class="dot simulated"></i><b data-es="Simulado" data-en="Simulated">Simulado</b></span><span><i class="dot estimated"></i><b data-es="Estimado por IA" data-en="AI estimated">Estimado por IA</b></span><span><i class="dot validated"></i><b data-es="Validado por persona" data-en="Human validated">Validado por persona</b></span></div>
           <button id="runAnalysis" class="primary-button full" type="submit" data-es="Generar RBM e IRBC" data-en="Generate MBR and BCRI">Generar RBM e IRBC</button>
           <p class="privacy" data-es="La clave de OpenAI permanece en el servidor. El prototipo no almacena imágenes en un servidor y no identifica cantos directamente." data-en="The OpenAI key stays on the server. The prototype does not persist images on a server and does not directly identify calls.">La clave de OpenAI permanece en el servidor. El prototipo no almacena imágenes en un servidor y no identifica cantos directamente.</p>
         </section>
@@ -213,7 +217,7 @@
           </aside>
         </div>
 
-        <div class="result-actions"><button id="exportCsv" class="secondary-button" type="button">CSV</button><button id="exportJson" class="secondary-button" type="button">JSON</button><button id="exportGeoJson" class="secondary-button" type="button">GeoJSON</button><button id="newAnalysis" class="primary-button" type="button" data-es="Nueva observación" data-en="New observation">Nueva observación</button></div>
+        <div class="result-actions"><button id="downloadResearchPackage" class="primary-button package-button" type="button" data-es="Descargar paquete de investigación" data-en="Download research package">Descargar paquete de investigación</button><button id="exportCsv" class="secondary-button" type="button">CSV</button><button id="exportJson" class="secondary-button" type="button">JSON</button><button id="exportGeoJson" class="secondary-button" type="button">GeoJSON</button><button id="newAnalysis" class="secondary-button" type="button" data-es="Nueva observación" data-en="New observation">Nueva observación</button></div>
       </section>
     </section>
 

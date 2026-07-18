@@ -1,154 +1,118 @@
 # MigrAves Climate Sentinel
 
-MigrAves Climate Sentinel is a mobile-first research-support prototype that transforms bird observations, microclimate readings, bioacoustic metadata, and local historical baselines into traceable data products for future ecological and climate studies.
+MigrAves Climate Sentinel is an OpenAI Build Week research-support prototype. It converts migratory-bird observations and environmental variables into traceable **Registros Bioclimáticos Migratorios (RBM)** that can support future climate and ecological studies.
 
-It is built around three explicit objects:
+> **DEMONSTRATION — SIMULATED DATA.** The complete demo works without an `OPENAI_API_KEY`, paid APIs, or external data services.
 
-- **ABM - Area Bioclimática Migratoria:** a territorial monitoring unit with ecosystem, coordinates, priority species, baseline, governance, and data-access rules.
-- **RBM - Registro Bioclimático Migratorio:** a standardized record containing biological observations, environmental readings, provenance, uncertainty, and validation status.
-- **IRBC - Índice de Respuesta Biológica al Clima:** an experimental 0-100 indicator that separates phenology, abundance, habitat, and weather signals.
+## Problem and solution
 
-## Core proposition
+Bird sightings, local ecological knowledge, images, and microclimate readings are often stored separately and with inconsistent metadata. MigrAves provides a reproducible territorial unit, explicit provenance, a cautious experimental indicator, human review, and dependency-free exports.
 
-Weather stations measure the atmosphere. MigrAves adds a biological layer that documents how migratory birds and their habitats appear to be responding.
+It does **not** claim that an isolated observation proves climate change or causality. It does not predict tornadoes, earthquakes, or other disasters. Reliable climate conclusions require repeated comparable sampling, calibrated instruments, statistical analysis, and expert review.
 
-The prototype does not claim that birds replace calibrated weather stations, satellites, radar, GPS tracking, ecological fieldwork, or statistical climate attribution.
+## ABM → RBM → IRBC flow
 
-## End-to-end MVP flow
+1. **ABM — Área Bioclimática Migratoria:** defines ecosystem, coordinates, priority taxa, baseline, governance, and access level.
+2. **Observation:** uses a clearly labeled simulation or user-supplied evidence and environmental metadata.
+3. **RBM — Registro Bioclimático Migratorio:** structures the observation, environment, history, uncertainty, and provenance.
+4. **IRBC — Índice de Respuesta Biológica al Clima:** experimental 0–100 summary of phenology, abundance, habitat, and weather signals.
+5. **Human validation:** confirm, correct, discard, or perform N4 scientific validation. N4 is restricted to a named `biologist` or `scientist`.
+6. **Export:** download JSON, CSV, and GeoJSON individually or with **Download research package**.
 
-1. Create or select an ABM.
-2. Define ecosystem, location, monitoring radius, priority species, baseline, responsible role, and access level.
-3. Upload a JPG, PNG, or WEBP image, or run a clearly labeled simulation.
-4. Enter/import microclimate and bioacoustic sensor metadata.
-5. GPT-5.6 analyzes visible evidence conservatively and returns structured output.
-6. The application generates an RBM and experimental IRBC.
-7. A student, technician, biologist, scientist, or community observer reviews the record.
-8. The record moves through explicit quality levels.
-9. Export CSV, JSON, or GeoJSON for later research workflows.
+## Architecture
 
-## Data quality levels
+```text
+Browser UI (HTML/CSS/JS)
+  ├─ localStorage: custom ABMs and RBMs
+  ├─ local simulation: no key, no network, no paid service
+  ├─ local exporters: JSON + CSV + GeoJSON
+  └─ optional /api/analyze
+       └─ OpenAI Responses API (server-side key only)
+```
 
-| Level | Meaning |
-|---|---|
-| N0 | Discarded record |
-| N1 | Raw captured/imported data; future production layer |
-| N2 | AI-estimated record pending human review |
-| N3 | Human-confirmed or corrected record |
-| N4 | Explicitly validated by a named biologist or scientist |
+The core demonstration is static and browser-based. `api/analyze.js` is optional and only used for real uploaded-image analysis when a server-side key is configured.
 
-The UI does not allow N4 validation unless the reviewer role is `biologist` or `scientist` and a reviewer name is supplied. This is a workflow guardrail, not proof of credentials.
+## Provenance model
 
-## Scientific boundaries
+Every RBM keeps distinct flags and labels for:
 
-This prototype does **not**:
+- simulated data;
+- measured values;
+- imported values;
+- AI-estimated results;
+- human-reviewed or validated results.
 
-- prove climate change from one observation;
-- establish climate causality;
-- predict tornadoes, earthquakes, or other hazards;
-- infer animal emotions or internal states;
-- identify bird calls directly from audio;
-- replace specialist taxonomic identification;
-- replace calibrated ecological sampling or statistical analysis;
-- publish sensitive coordinates without access controls.
+Simulation never masquerades as field evidence. Restricted or sensitive ABMs receive generalized coordinates in GeoJSON exports.
 
-The valid use is evidence structuring, early-warning triage, education, and creation of reviewable time-series records.
+## Implemented functions
 
-## OpenAI role
+- bilingual, mobile-first ABM creation and selection;
+- full offline demonstration with a persistent simulation banner;
+- RBM and experimental IRBC generation;
+- full ABM name as the primary result heading, with RBM code secondary;
+- human confirmation, correction, rejection, and N4 guardrail;
+- local registry in the browser;
+- individual JSON, CSV, and GeoJSON exports;
+- one-click research package containing all three formats;
+- accessible focus states, live status messages, responsive layouts, and conservative scientific language;
+- optional structured GPT-5.6 image analysis through a serverless endpoint.
 
-GPT-5.6 is used to:
+## Simulated data
 
-- inspect uploaded visual evidence;
-- estimate broad taxa, counts, visible groups, and observable behavior;
-- compare the event with the supplied local baseline;
-- separate phenology, abundance, habitat, and weather signals;
-- generate strict structured output;
-- expose uncertainty, limitations, and recommended next steps.
+The included areas and observations are synthetic demonstration fixtures. They exist to show the complete workflow and must not be treated as field measurements or scientific findings. The interface and exported provenance identify them explicitly.
 
-Codex is used to build, test, document, and refine the application.
+## Try without an API key
 
-## Local setup
-
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 20+.
 
 ```bash
 npm install
-cp .env.example .env.local
-# Add OPENAI_API_KEY to .env.local
-npm run dev
+npm run serve
 ```
 
-The full simulation works without an API key. Real image analysis requires the Vercel serverless function.
+Open the local URL, then:
 
-Run the local smoke test:
+1. create or select an ABM;
+2. press **Ejecutar demostración**;
+3. press **Generar RBM e IRBC**;
+4. enter a reviewer name and choose a validation action;
+5. press **Descargar paquete de investigación**.
+
+No `.env` file or `OPENAI_API_KEY` is required for this path.
+
+## Checks and tests
 
 ```bash
+npm run check
 npm test
 ```
 
-The test covers custom ABM creation, simulated RBM generation, IRBC output, and the N4 validation guard.
+The dependency-free smoke test covers ABM creation, demo RBM/IRBC generation, provenance, N4 allowed and blocked roles, CSV/JSON/GeoJSON package generation, and area naming.
 
-## Deploy to Vercel
+## Optional OpenAI analysis
 
-1. Upload the project contents to a GitHub repository.
-2. Import the repository into Vercel.
-3. Add environment variables:
-   - `OPENAI_API_KEY`
-   - `OPENAI_MODEL` = `gpt-5.6-terra` (optional)
-4. Redeploy.
+For real uploaded-image analysis, deploy the serverless endpoint and set `OPENAI_API_KEY`. `OPENAI_MODEL` is optional. The key is read only in `api/analyze.js` and is never sent to browser code.
 
-The API key is only read by `api/analyze.js` and is never exposed to the browser.
+GPT-5.6 is used conservatively to structure visual evidence, uncertainty, broad taxa, estimated counts, visible behavior, and comparisons supported by the supplied baseline. Codex was used to audit, implement, test, document, and prepare the Build Week branch.
+
+## Future functions
+
+- calibrated camera and acoustic-sensor ingestion;
+- specialist edge models and automated quality checks;
+- authenticated reviewer credentials and audit trails;
+- PostGIS time series and research API;
+- statistical calibration of IRBC across seasons and sites;
+- interoperability with established biodiversity standards;
+- field pilots with ecologists, communities, and conservation institutions.
 
 ## Main files
 
-- `index.html` - bilingual mobile-first interface.
-- `styles.css` - visual system and responsive layouts.
-- `app.js` - ABM creation, demo network, RBM generation, IRBC, validation, local registry, and exports.
-- `api/analyze.js` - secure multimodal Responses API call with strict JSON schema.
-- `tests/smoke.mjs` - dependency-free workflow smoke test.
-- `data/ABM_SCHEMA.json` - area data contract.
-- `data/RBM_SCHEMA.json` - record data contract.
-- `data/example-rbm.json` - example research record.
-- `submission/PROJECT_DESCRIPTION_EN.md` - competition description.
-- `submission/VIDEO_SCRIPT_ES.md` - short demo script.
-- `submission/TECHNICAL_ARCHITECTURE.md` - current and future architecture.
-- `submission/SCIENTIFIC_GUARDRAILS.md` - scientific and governance boundaries.
-
-## Privacy and sensitive biodiversity data
-
-Uploaded images are sent to OpenAI only when real AI analysis is requested. The prototype does not persist images on its server. Structured records and custom areas are stored locally in the browser.
-
-GeoJSON exports generalize coordinates when an area is marked `restricted` or `sensitive`. A production system should implement authentication, role-based access, encryption, audit logs, and species-specific sensitivity rules.
-
-## Future production architecture
-
-```text
-Low-power acoustic trigger
-        ↓
-Camera + calibrated sensors
-        ↓
-Specialist edge model filters/counts
-        ↓
-GPT-5.6 structures evidence and uncertainty
-        ↓
-Student/technician review
-        ↓
-Biologist/scientist validation
-        ↓
-Supabase/PostGIS time series + research API
-```
-
-## Pilot validation metrics
-
-- bird-presence precision and recall;
-- count error against expert manual counts;
-- taxonomic agreement by resolution level;
-- IRBC repeatability and calibration;
-- false-alert rate;
-- percentage of records confirmed, corrected, or discarded;
-- reviewer agreement;
-- sensor uptime and energy use;
-- bytes transmitted per validated event;
-- completeness of provenance fields.
+- `index.html`, `styles.css`, `app.js`: application UI and offline workflow.
+- `api/analyze.js`: optional server-side multimodal analysis.
+- `tests/smoke.mjs`: dependency-free workflow test.
+- `data/`: ABM/RBM contracts and example record.
+- `submission/`: Build Week and scientific-governance material.
+- `AGENTS.md`: contributor and coding-agent guardrails.
 
 ## License
 
