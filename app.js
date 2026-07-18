@@ -527,7 +527,7 @@ function renderResult(result) {
   const area = areas[state.selectedArea];
   const irbc = result.climate_response_index || deriveIrbc(result);
   const quality = qualityInfo();
-  $("#resultTitle").textContent = `${area.code} · ${state.recordId || "RBM"}`;
+  $("#resultTitle").textContent = `${area.name} · ${state.recordId || "RBM"}`;
   $("#metricRecordId").textContent = state.recordId || "—";
   $("#metricBirds").textContent = formatNumber(result.estimated_total_birds);
   $("#metricConfidence").textContent = `${Math.round((result.overall_confidence || 0) * 100)}%`;
@@ -550,7 +550,8 @@ function renderResult(result) {
   $("#resultProvenance").innerHTML = `
     <span class="source-badge ${state.imageSource === "real" ? "real" : "simulated"}">${state.imageSource === "real" ? (state.language === "es" ? "IMAGEN REAL" : "REAL IMAGE") : (state.language === "es" ? "IMAGEN SIMULADA" : "SIMULATED IMAGE")}</span>
     <span class="source-badge ${state.mode === "demo" ? "simulated" : "real"}">${state.mode === "demo" ? (state.language === "es" ? "SENSORES SIMULADOS" : "SIMULATED SENSORS") : (state.language === "es" ? "SENSORES INGRESADOS" : "ENTERED SENSORS")}</span>
-    <span class="source-badge estimated">${state.language === "es" ? "RESULTADO ESTIMADO" : "ESTIMATED RESULT"}</span>`;
+    <span class="source-badge estimated">${state.mode === "demo" ? (state.language === "es" ? "ESTIMACIÓN SIMULADA" : "SIMULATED ESTIMATE") : (state.language === "es" ? "ESTIMADO POR IA" : "AI ESTIMATED")}</span>
+    ${state.validation.status !== "pending" ? `<span class="source-badge validated">${state.language === "es" ? "REVISADO POR PERSONA" : "HUMAN REVIEWED"}</span>` : ""}`;
   updateValidationUI();
   updateRecordPreview();
 }
@@ -701,7 +702,20 @@ function buildRecord() {
     historical_comparison: result.historical_comparison,
     climate_response_index: result.climate_response_index,
     interpretation: { summary: localText(result.summary), recommended_action: localText(result.recommended_action), limitations: localTextArray(result.limitations) },
-    provenance: { ...context.data_provenance, biological_analysis: "ai_estimate_pending_human_validation", analysis_mode: state.mode, ai_model: state.model || "unknown", software: "MigrAves Climate Sentinel MVP 0.3.0" },
+    provenance: {
+      ...context.data_provenance,
+      source_classes: {
+        simulated: state.mode === "demo",
+        measured: state.mode !== "demo",
+        imported: state.mode !== "demo",
+        ai_estimated: state.mode === "ai",
+        human_validated: state.validation.status !== "pending"
+      },
+      biological_analysis: state.mode === "demo" ? "simulated_estimate_pending_human_review" : "ai_estimate_pending_human_validation",
+      analysis_mode: state.mode,
+      ai_model: state.model || "unknown",
+      software: "MigrAves Climate Sentinel MVP 0.4.0"
+    },
     validation: { ...state.validation, data_quality_level: quality.code, data_quality_label: quality.label }
   };
 }
@@ -813,6 +827,77 @@ function exportGeoJson() {
   downloadBlob(JSON.stringify(geojson, null, 2), `${record.record_id.toLowerCase()}.geojson`, "application/geo+json");
 }
 
+function buildCsv(record = buildRecord()) {
+  const row = {
+    record_id: record.record_id, area_code: record.area.area_id, area_name: record.area.name,
+    observed_at: record.observation.observed_at, primary_taxon: record.observation.primary_taxon,
+    estimated_total_birds: record.observation.estimated_total_birds,
+    irbc_score: record.climate_response_index.score, data_quality_level: record.validation.data_quality_level,
+    validation_status: record.validation.status, simulated: record.provenance.source_classes.simulated,
+    measured: record.provenance.source_classes.measured, imported: record.provenance.source_classes.imported,
+    ai_estimated: record.provenance.source_classes.ai_estimated, human_validated: record.provenance.source_classes.human_validated
+  };
+  return `${Object.keys(row).map(csvCell).join(",")}\n${Object.values(row).map(csvCell).join(",")}\n`;
+}
+
+function buildGeoJson(record = buildRecord()) {
+  return { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Point", coordinates: publicCoordinates(record.area) }, properties: { record_id: record.record_id, area_name: record.area.name, area_code: record.area.area_id, irbc_score: record.climate_response_index.score, validation_status: record.validation.status, data_quality_level: record.validation.data_quality_level, provenance: record.provenance.source_classes } }] };
+}
+
+function downloadResearchPackage() {
+  if (!state.result) return showToast(state.language === "es" ? "Primero genera un RBM e IRBC." : "Generate an MBR and BCRI first.");
+  const record = buildRecord();
+  const base = `${record.record_id.toLowerCase()}-research-package`;
+  const archive = createZip([
+    { name: `${record.record_id.toLowerCase()}.json`, content: JSON.stringify(record, null, 2) },
+    { name: `${record.record_id.toLowerCase()}.csv`, content: buildCsv(record) },
+    { name: `${record.record_id.toLowerCase()}.geojson`, content: JSON.stringify(buildGeoJson(record), null, 2) }
+  ]);
+  downloadBlob(archive, `${base}.zip`, "application/zip", true);
+  showToast(state.language === "es" ? "Paquete ZIP descargado: JSON, CSV y GeoJSON." : "ZIP package downloaded: JSON, CSV, and GeoJSON.");
+}
+
+function createZip(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = encoder.encode(file.name);
+    const data = encoder.encode(file.content);
+    const checksum = crc32(data);
+    const local = new Uint8Array(30 + name.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0x0800, true);
+    lv.setUint32(14, checksum, true); lv.setUint32(18, data.length, true); lv.setUint32(22, data.length, true);
+    lv.setUint16(26, name.length, true); local.set(name, 30);
+    localParts.push(local, data);
+
+    const central = new Uint8Array(46 + name.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true);
+    cv.setUint32(16, checksum, true); cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true);
+    cv.setUint16(28, name.length, true); cv.setUint32(42, offset, true); central.set(name, 46);
+    centralParts.push(central);
+    offset += local.length + data.length;
+  }
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true); ev.setUint32(16, offset, true);
+  return new Blob([...localParts, ...centralParts, end], { type: "application/zip" });
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 function publicCoordinates(area) {
   const [lon, lat] = area.geometry.coordinates;
   if (area.governance.data_access === "sensitive") return [round(lon, 1), round(lat, 1)];
@@ -820,15 +905,15 @@ function publicCoordinates(area) {
   return [lon, lat];
 }
 
-function downloadBlob(content, filename, type) {
-  const blob = new Blob([content], { type });
+function downloadBlob(content, filename, type, quiet = false) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast(state.language === "es" ? "Archivo exportado." : "File exported.");
+  if (!quiet) showToast(state.language === "es" ? "Archivo exportado." : "File exported.");
 }
 
 function showToast(message) {
@@ -882,6 +967,7 @@ $("#saveCorrection").addEventListener("click", saveCorrection);
 $("#exportCsv").addEventListener("click", exportCsv);
 $("#exportJson").addEventListener("click", exportJson);
 $("#exportGeoJson").addEventListener("click", exportGeoJson);
+$("#downloadResearchPackage").addEventListener("click", downloadResearchPackage);
 $("#clearRegistry").addEventListener("click", clearRegistry);
 $("#newAnalysis").addEventListener("click", () => { $("#resultsSection").hidden = true; state.result = null; state.recordId = null; state.model = null; state.validation = createPendingValidation(); clearCanvas(); $("#laboratorio").scrollIntoView({ behavior: "smooth", block: "start" }); });
 window.addEventListener("resize", () => { if (state.result) drawDetections(state.result.detections || []); });

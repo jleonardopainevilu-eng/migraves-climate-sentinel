@@ -27,7 +27,7 @@ class DummyElement {
   reset() {}
   scrollIntoView() {}
   requestSubmit() {}
-  click() {}
+  click() { if (this.download) downloads.push(this.download); }
   getBoundingClientRect() { return { width: 600, height: 400 }; }
   getContext() {
     return {
@@ -40,6 +40,7 @@ class DummyElement {
 }
 
 const elements = new Map();
+const downloads = [];
 const getElement = (selector) => {
   if (!elements.has(selector)) elements.set(selector, new DummyElement(selector));
   return elements.get(selector);
@@ -74,6 +75,9 @@ const sandbox = {
   Object,
   JSON,
   Blob: class {},
+  TextEncoder,
+  DataView,
+  Uint8Array,
   URL: { createObjectURL() { return "blob:test"; }, revokeObjectURL() {} },
   FileReader: class {},
   fetch: async () => ({ ok: false, json: async () => ({ error: "network disabled in smoke test" }) }),
@@ -92,6 +96,15 @@ const testCode = `${appCode}\n
   document.querySelector("#reviewerRole").value = "biologist";
   setValidation("scientific_validated");
   globalThis.__record = buildRecord();
+  globalThis.__csv = buildCsv(globalThis.__record);
+  globalThis.__geojson = buildGeoJson(globalThis.__record);
+  downloadResearchPackage();
+
+  state.validation = createPendingValidation();
+  document.querySelector("#reviewerName").value = "Revisor no profesional";
+  document.querySelector("#reviewerRole").value = "student";
+  setValidation("scientific_validated");
+  globalThis.__blockedQuality = qualityInfo().code;
 
   document.querySelector("#areaName").value = "Humedal Prueba";
   document.querySelector("#areaCode").value = "ABM-TST-001";
@@ -116,6 +129,15 @@ assert.ok(sandbox.__record, "Demo should generate an RBM");
 assert.match(sandbox.__record.record_id, /^RBM-/);
 assert.equal(sandbox.__record.validation.data_quality_level, "N4");
 assert.equal(sandbox.__record.climate_response_index.score, 72);
+assert.equal(sandbox.__record.area.name, "Humedal de Chamiza");
+assert.equal(sandbox.__record.provenance.source_classes.simulated, true);
+assert.equal(sandbox.__record.provenance.source_classes.human_validated, true);
+assert.match(sandbox.__csv, /area_name/);
+assert.match(sandbox.__csv, /Humedal de Chamiza/);
+assert.equal(sandbox.__geojson.type, "FeatureCollection");
+assert.equal(sandbox.__geojson.features[0].properties.area_name, "Humedal de Chamiza");
+assert.equal(sandbox.__blockedQuality, "N2", "N4 must remain restricted to biologists and scientists");
+assert.deepEqual(downloads.map((name) => name.split(".").pop()), ["zip"]);
 assert.equal(sandbox.__area.area_id, "ABM-TST-001");
 assert.deepEqual([...sandbox.__area.geometry.coordinates], [-73, -41.5]);
 assert.equal(sandbox.__area.governance.data_access, "restricted");
